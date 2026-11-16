@@ -31,6 +31,7 @@ interface App {
   state?: CareerState;
   world?: CareerWorld;
   tab: Tab;
+  openTabs: Tab[];
   selected?: string;
   last?: { text: string; fx: string };
   busy: boolean;
@@ -41,10 +42,12 @@ interface App {
 }
 
 const params = new URLSearchParams(location.search);
+const initialTab = TABS.some((t) => t.id === params.get("tab")) ? (params.get("tab") as Tab) : "act";
 const app: App = {
   seed: Number(params.get("seed")) || Math.floor(Math.random() * 100000),
   setup: {},
-  tab: (params.get("tab") as Tab) || "act",
+  tab: initialTab,
+  openTabs: [initialTab],
   busy: false,
   electionsShown: 0,
 };
@@ -60,23 +63,56 @@ function render(): void {
     return;
   }
   const tab = TABS.find((t) => t.id === app.tab)!;
-  let body = "";
-  if (app.tab === "act") body = activityView(state, world, app.selected, app.last);
-  else if (app.tab === "self") body = selfView(state, world);
-  else if (app.tab === "party") body = partyView(state, world);
-  else if (app.tab === "cabinet") body = cabinetView(state, world);
-  else body = mapViewShell();
+  const panels = app.openTabs.map((id) => {
+    const info = TABS.find((t) => t.id === id)!;
+    return `<section class="tab-panel${id === app.tab ? " is-focused" : ""}">
+      <header class="tab-panel-head"><h2>${icon(info.icon, 20, info.label)}${info.title}</h2>
+        ${app.openTabs.length > 1 ? `<button class="tab-close" data-close-tab="${id}" aria-label="${info.label}を閉じる" title="閉じる">×</button>` : ""}
+      </header>
+      <div class="tab-panel-body">${tabBody(id)}</div>
+    </section>`;
+  }).join("");
   root.innerHTML = `<div class="shell">
     <header class="topbar">
       <div class="crumb"><div class="diamond"></div><div><span class="crumb-sub">議員人生 ― ${esc(world.player.name.displayName)}・当選${world.player.terms}回</span><span class="crumb-main">${tab.title}</span></div></div>
-      <nav class="tabs" aria-label="画面の切り替え">${TABS.map((t, i) => `<button class="tab${t.id === app.tab ? " is-active" : ""}" data-tab="${t.id}">${icon(t.icon, 20, t.label)}${t.label}<kbd>${i + 1}</kbd></button>`).join("")}</nav>
+      <nav class="tabs" aria-label="画面の切り替え">${TABS.map((t, i) => `<button class="tab${app.openTabs.includes(t.id) ? " is-open" : ""}${t.id === app.tab ? " is-active" : ""}" data-tab="${t.id}" aria-pressed="${app.openTabs.includes(t.id)}">${icon(t.icon, 20, t.label)}${t.label}<kbd>${i + 1}</kbd></button>`).join("")}</nav>
     </header>
-    <main class="view">${body}</main>
+    <main class="view"><div class="multi-view">${panels}</div></main>
     <footer class="status">${statusBar(state, world)}</footer>
   </div>
   ${modalHtml()}
   ${app.toast ? `<div class="cut toast" role="status">${esc(app.toast)}</div>` : ""}`;
-  if (app.tab === "map") mountMap();
+  if (app.openTabs.includes("map")) mountMap();
+}
+
+function tabBody(tab: Tab): string {
+  const { state, world } = app;
+  if (!state || !world) return "";
+  if (tab === "act") return activityView(state, world, app.selected, app.last);
+  if (tab === "self") return selfView(state, world);
+  if (tab === "party") return partyView(state, world);
+  if (tab === "cabinet") return cabinetView(state, world);
+  return mapViewShell();
+}
+
+function openTab(tab: Tab): void {
+  if (!app.openTabs.includes(tab)) {
+    if (app.openTabs.length >= 3) {
+      const remove = app.openTabs.find((id) => id !== app.tab) ?? app.openTabs[0];
+      app.openTabs = app.openTabs.filter((id) => id !== remove);
+      app.toast = `${TABS.find((t) => t.id === remove)!.label}を閉じました`;
+    }
+    app.openTabs.push(tab);
+  }
+  app.tab = tab;
+  render();
+}
+
+function closeTab(tab: Tab): void {
+  if (app.openTabs.length <= 1) return;
+  app.openTabs = app.openTabs.filter((id) => id !== tab);
+  if (app.tab === tab) app.tab = app.openTabs[app.openTabs.length - 1];
+  render();
 }
 
 function mapViewShell(): string {
@@ -218,10 +254,9 @@ root.addEventListener("click", (ev) => {
     }
     render();
   } else if (d.action === "start") void start();
-  else if (d.tab) {
-    app.tab = d.tab as Tab;
-    render();
-  } else if (d.act) selectActivity(d.act);
+  else if (d.closeTab) closeTab(d.closeTab as Tab);
+  else if (d.tab) openTab(d.tab as Tab);
+  else if (d.act) selectActivity(d.act);
   else if (d.up) {
     let n = 0;
     for (let i = 0; i < Number(d.times ?? 1); i++) if (upgradeAbility(app.state!, app.world!, d.up as Ability)) n++;
@@ -260,8 +295,7 @@ window.addEventListener("keydown", (e) => {
   }
   const n = Number(e.key);
   if (n >= 1 && n <= TABS.length) {
-    app.tab = TABS[n - 1].id;
-    render();
+    openTab(TABS[n - 1].id);
     return;
   }
   if (app.tab !== "act") return;
