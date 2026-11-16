@@ -1286,3 +1286,23 @@ svg[role="img"] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ブラウザの表示領域をゲーム画面で使い切る */
+.shell {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.view {
+  min-width: 0;
+}
+
+/* 活動カードはマウスホイールでも横に送れる */
+.cards {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
