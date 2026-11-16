@@ -1232,3 +1232,45 @@ svg[role="img"] {
 .tab-panel-body { min-width:0; padding:8px; }
 .tab.is-open:not(.is-active) { border-color:#6fc5ff; background:rgba(20,66,112,.92); }
 @media (max-width:760px) { .multi-view { grid-template-columns:minmax(0,1fr); } .tab-panel-body { padding:6px; } }
+
+/* 複数パネル内では、画面幅ではなく各パネルの幅に応じて内部レイアウトを切り替える */
+.tab-panel-body {
+  container-type: inline-size;
+}
+
+@container (max-width: 820px) {
+  .tab-panel-body .arena {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "exp"
+      "race"
+      "center"
+      "rel"
+      "cards";
+    gap: 10px;
+  }
+
+  .tab-panel-body .exp-panel,
+  .tab-panel-body .race-panel,
+  .tab-panel-body .rel-panel,
+  .tab-panel-body .center,
+  .tab-panel-body .cards {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .tab-panel-body .race {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .tab-panel-body .msg {
+    width: 100%;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .tab-panel-body .cards {
+    max-width: 100%;
+  }
+}
