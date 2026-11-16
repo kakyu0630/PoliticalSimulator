@@ -333,3 +333,13 @@ async function boot(): Promise<void> {
 }
 
 void boot();
+
+// 活動カードの列は、Shift を押さずに通常のホイール操作で横スクロールできる
+root.addEventListener("wheel", (ev) => {
+  const target = ev.target as HTMLElement;
+  const cards = target.closest<HTMLElement>(".cards");
+  if (!cards || Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return;
+  if (cards.scrollWidth <= cards.clientWidth) return;
+  cards.scrollLeft += ev.deltaY;
+  ev.preventDefault();
+}, { passive: false });
