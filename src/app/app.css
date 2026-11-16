@@ -1274,3 +1274,15 @@ svg[role="img"] {
     max-width: 100%;
   }
 }
+
+/* 3画面同時表示でも各パネルの横幅を確保する */
+.multi-view {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .multi-view {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
